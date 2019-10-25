@@ -26,8 +26,11 @@ along with gpsinfo. If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
-INPUT_filenameXML = '/home/rechenraum/Base/data/gpsinfo/20191024/gpsinfoWMTSCapabilities.xml'
-INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
+#INPUT_filenameXML = '/home/rechenraum/Base/data/gpsinfo/20191024/gpsinfoWMTSCapabilities.xml'
+#INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
+
+INPUT_filenameXML = '/home/simon/Base/data/gpsinfo/20191025/gpsinfoWMTSCapabilities.xml'
+INPUT_layerTitle = 'gpsinfo Test Layer'
 
 ################################################################################
 #
@@ -35,9 +38,47 @@ INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
 #
 ################################################################################
 
+import sys
 import time
 import xml.etree.ElementTree as xmlET
 import gdal
+
+################################################################################
+#
+# \brief Download/open tile via GDAL and returns its data as numpy array
+#
+# \param layerURLTemplate URL template as defined in the XML file
+# \param tileRowIndex Row index of tile
+# \param tileColIndex Column index of tile
+#
+# \return Numpy array storing the tile data
+# 
+################################################################################
+
+def loadTileData(layerURLTempalte, tileRowIndex, tileColIndex) :
+	# Build URL
+	url = layerURLTemplate.replace('{TileCol}', str(tileColIndex)).replace('{TileRow}', str(tileRowIndex))
+	# DEBUGGING ONLY (start)
+	#url = url.replace('c/', '/home/rechenraum/Base/data/gpsinfo/20191024/')
+	# DEBUGGING ONLY (end)
+	print('Loading ' + url + ' ...')
+
+	# GDAL's virtual file system: https://gdal.org/user/virtual_file_systems.html
+	# GDAL and python: 
+	#	- https://pcjericks.github.io/py-gdalogr-cookbook/raster_layers.html
+	#	- https://automating-gis-processes.github.io/2016/Lesson7-read-raster.html
+	gdal_dataset = gdal.Open(url)
+	if gdal_dataset is None:
+		print('ERROR Failed to open ' + url + '.')
+		sys.exit()
+	
+	# read data as numpy array
+	array = gdal_dataset.ReadAsArray();
+	
+	# Close the dataset
+	gdal_dataset = None
+	
+	return array
 
 ################################################################################
 #
@@ -79,10 +120,10 @@ for layerNode in xmlRoot.findall('./wmts:Contents/wmts:Layer/ows:Title', xmlName
 layerNode = xmlRoot.findall("./wmts:Contents/wmts:Layer[ows:Title='" + INPUT_layerTitle + "']", xmlNamespace)
 if (len(layerNode) == 0) :
 	print('ERROR Failed to find layer with title ' + INPUT_layerTitle + '.')
-	exit
+	sys.exit()
 elif (len(layerNode) != 1) :
 	print('ERROR Failed to find unique layer with title ' + INPUT_layerTitle + '.')
-	exit
+	sys.exit()
 
 layerURLFormat = layerNode[0].find('wmts:ResourceURL', xmlNamespace).attrib['format']
 layerURLTemplate = layerNode[0].find('wmts:ResourceURL', xmlNamespace).attrib['template']
@@ -90,31 +131,48 @@ layerURLTemplate = layerNode[0].find('wmts:ResourceURL', xmlNamespace).attrib['t
 tileMatrixSet = layerNode[0].find("wmts:TileMatrixSetLink/wmts:TileMatrixSet", xmlNamespace).text
 tileMatrixSetNode = xmlRoot.find("./wmts:Contents/wmts:TileMatrixSet[ows:Identifier='" + tileMatrixSet + "']", xmlNamespace)
 
+topLeftCorner = tileMatrixSetNode.find('wmts:TileMatrix/wmts:TopLeftCorner', xmlNamespace).text.split()
+topLeftCornerX = float(topLeftCorner[0])
+topLeftCornerY = float(topLeftCorner[1])
+tileWidth = int(tileMatrixSetNode.find('wmts:TileMatrix/wmts:TileWidth', xmlNamespace).text)
+tileHeight = int(tileMatrixSetNode.find('wmts:TileMatrix/wmts:TileHeight', xmlNamespace).text)
+nrTilesX = int(tileMatrixSetNode.find('wmts:TileMatrix/wmts:MatrixWidth', xmlNamespace).text)
+nrTilesY = int(tileMatrixSetNode.find('wmts:TileMatrix/wmts:MatrixHeight', xmlNamespace).text)
+cellsize = float(tileMatrixSetNode.find('wmts:TileMatrix/wmts:ScaleDenominator', xmlNamespace).text) * 0.00028
+
 ################################################################################
 #
-# download tiles
+# compute tile index for a specific query point
 #
 ################################################################################
 
-# GDAL's virtual file system: https://gdal.org/user/virtual_file_systems.html
-# GDAL and python: https://pcjericks.github.io/py-gdalogr-cookbook/raster_layers.html
-for row in range(0,2) :
-	for col in range(0,3) :
-		url = layerURLTemplate.replace('{TileCol}', str(col)).replace('{TileRow}', str(row))
-		# DEBUGGING ONLY (start)
-		url = url.replace('c/', '/home/rechenraum/Base/data/gpsinfo/20191024/')
-		# DEBUGGING ONLY (end)
-		print('Loading ' + url + ' ...')
-		gdal_dataset = gdal.Open(url)
-		if gdal_dataset is None:
-			print('ERROR Failed to open ' + url + '.')
-			exit
-		
-		print(gdal_dataset.GetGeoTransform())
-		
-		print (str(gdal_dataset.RasterXSize) + ' x ' + str(gdal_dataset.RasterYSize))
-		
-		gdal_rasterband = gdal_dataset.GetRasterBand(1)
-		
-		# Close the dataset
-		gdal_dataset = None
+INPUT_qX = topLeftCornerX+100
+INPUT_qY = topLeftCornerY-200
+
+globalColIndex = int(round((INPUT_qX - topLeftCornerX) / cellsize));
+globalRowIndex = int(round((topLeftCornerY - INPUT_qY) / cellsize));
+
+if (globalColIndex < 0) | (globalRowIndex < 0) :
+	print('ERROR Query point out of bounds.')
+	sys.exit()
+
+# The wanted value is in tile (tileRowIndex, tileColIndex) at 
+# (localRowIndex, localColIndex)
+tileColIndex, localColIndex = divmod(globalColIndex, tileWidth)
+tileRowIndex, localRowIndex = divmod(globalRowIndex, tileHeight)
+
+if (tileColIndex >= nrTilesX) | (tileRowIndex >= nrTilesY) :
+	print('ERROR Query point out of bounds.')
+	sys.exit()
+
+# print(str(tileRowIndex) + ', ' + str(tileColIndex))
+# print(str(localColIndex) + ', ' + str(localRowIndex))
+
+data = loadTileData(layerURLTemplate, tileRowIndex, tileColIndex)
+print(str(data[localRowIndex,localColIndex]))
+
+sys.exit()
+
+
+
+	
