@@ -42,6 +42,7 @@ import sys
 import time
 import xml.etree.ElementTree as xmlET
 import gdal
+import gpsinfo
 
 ################################################################################
 #
@@ -93,6 +94,12 @@ print('')
 print('(c) 2019 Rechenraum GmbH (office@rechenraum.com).')
 print('================================================================================')
 print('')
+
+si = gpsinfo.ServiceInfo()
+si.connect(INPUT_filenameXML)
+print si.baseurl()
+
+sys.exit()
 
 ################################################################################
 #
