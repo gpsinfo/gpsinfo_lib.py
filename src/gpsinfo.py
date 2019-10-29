@@ -26,10 +26,11 @@ along with gpsinfo. If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
-import sys
-import time
 import xml.etree.ElementTree as xmlET
-import gdal
+import sys
+
+# We support python3 only
+assert sys.version_info < (3, 0)
 
 ################################################################################
 #
@@ -41,18 +42,31 @@ class ServiceInfo:
 	
 	# Constructor
 	def __init__(self):
-		pass
-		
+		self.__xmlNamespace = {
+			'wmts' : 'http://www.opengis.net/wmts/1.0',
+			'ows' : 'http://www.opengis.net/ows/1.1'
+		}
+
 	# baseurl is URL to XML file
 	def connect(self, baseurl):
-		self.__m_baseurl = baseurl
 		
+		self.__baseurl = baseurl
+		
+		# Parse XML file
+		#
+		# See https://docs.python.org/3/library/xml.etree.elementtree.html
+		self.__xmlRoot = xmlET.parse(baseurl).getroot()
+		
+		# Get layers
+		self.__layers = []
+		for layerNode in self.__xmlRoot.findall('wmts:Contents/wmts:Layer/ows:Title', self.__xmlNamespace):
+			self.__layers.append(layerNode.text)
 		
 	def baseurl(self):
-		return self.__m_baseurl
+		return self.__baseurl
 		
 	def layers(self):
-		return m_layers
+		return self.__layers
 		
 ################################################################################
 #

@@ -26,11 +26,11 @@ along with gpsinfo. If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
-#INPUT_filenameXML = '/home/rechenraum/Base/data/gpsinfo/20191024/gpsinfoWMTSCapabilities.xml'
-#INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
+INPUT_filenameXML = '/home/rechenraum/Base/data/gpsinfo/20191024/gpsinfoWMTSCapabilities.xml'
+INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
 
-INPUT_filenameXML = '/home/simon/Base/data/gpsinfo/20191025/gpsinfoWMTSCapabilities.xml'
-INPUT_layerTitle = 'gpsinfo Test Layer'
+# INPUT_filenameXML = '/home/simon/Base/data/gpsinfo/20191025/gpsinfoWMTSCapabilities.xml'
+# INPUT_layerTitle = 'gpsinfo Test Layer'
 
 ################################################################################
 #
@@ -41,6 +41,7 @@ INPUT_layerTitle = 'gpsinfo Test Layer'
 import sys
 import time
 import xml.etree.ElementTree as xmlET
+# sudo apt install python3-gdal
 import gdal
 import gpsinfo
 
@@ -97,9 +98,10 @@ print('')
 
 si = gpsinfo.ServiceInfo()
 si.connect(INPUT_filenameXML)
-print si.baseurl()
-
-sys.exit()
+for layer in si.layers():
+    print('\t' + layer)
+    
+# sys.exit()
 
 ################################################################################
 #
@@ -109,14 +111,17 @@ sys.exit()
 
 # https://docs.python.org/3/library/xml.etree.elementtree.html
 xmlNamespace = {
-	'wmts' : 'http://www.opengis.net/wmts/1.0',
-	'ows' : 'http://www.opengis.net/ows/1.1'
-}
+			'wmts' : 'http://www.opengis.net/wmts/1.0',
+			'ows' : 'http://www.opengis.net/ows/1.1'
+		}
+
 xmlRoot = xmlET.parse(INPUT_filenameXML).getroot()
 
 print('Available layers:')
-for layerNode in xmlRoot.findall('./wmts:Contents/wmts:Layer/ows:Title', xmlNamespace):
+for layerNode in xmlRoot.findall('wmts:Contents/wmts:Layer/ows:Title', xmlNamespace):
     print('\t' + layerNode.text)
+
+sys.exit()
 
 ################################################################################
 #
