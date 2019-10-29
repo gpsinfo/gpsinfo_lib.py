@@ -68,6 +68,12 @@ class ServiceInfo:
 	def layers(self):
 		return self.__layers
 		
+	def xmlRoot(self):
+		return self.__xmlRoot
+		
+	def xmlNamespace(self):
+		return self.__xmlNamespace
+		
 ################################################################################
 #
 # class LayerInfo
@@ -81,7 +87,7 @@ class LayerInfo:
 		pass
 		
 	def connect(self, serviceInfo, layerName):
-		pass
+		layerNode = serviceInfo.xmlRoot().findall("./wmts:Contents/wmts:Layer[ows:Title='" + layerName + "']", serviceInfo.xmlNamespace())
 		
 	def value(self, method, x, y, value):
 		value = 4
