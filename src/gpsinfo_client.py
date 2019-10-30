@@ -42,11 +42,8 @@ INPUT_layerName = 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED'
 ################################################################################
 
 import sys
-import time
-import xml.etree.ElementTree as xmlET
-# sudo apt install python3-gdal
-import gdal
 import gpsinfo
+import numpy
 
 ################################################################################
 #
@@ -62,6 +59,10 @@ print('(c) 2019 Rechenraum GmbH (office@rechenraum.com).')
 print('================================================================================')
 print('')
 
+#
+# Connecting to gpsinfo service
+#
+
 print('Connecting to ' + INPUT_filenameXML + ' ...')
 gpsinfo_service = gpsinfo.Service()
 gpsinfo_service.connect(INPUT_filenameXML)
@@ -70,28 +71,69 @@ for layer in gpsinfo_service.layers():
     print('\t' + layer)
 print('')
 
+#
+# Connecting to a specific layer
+#
+
 gpsinfo_layer = gpsinfo.Layer()
 error = gpsinfo_layer.connect(gpsinfo_service, INPUT_layerName)
 if isinstance(error, str) : 
 	print(error)
 	sys.exit()
 
+#
+# Query single value
+# 
+
+print('')
+print('Query single value:')
+print('-------------------')
+print('')
+
+# out-of-bounds
 # height = gpsinfo_layer.value('undefined', 152803.0, 258808.0)
-height = gpsinfo_layer.value('undefined', 675392, 432848)
-# height = gpsinfo_layer.value('undefined', 125250, 371779)
+# Burgenland
+# height = gpsinfo_layer.value('undefined', 675392, 432848)
+# Vorarlberg
+height = gpsinfo_layer.value('undefined', 125250, 371779)
 if isinstance(height, str) :
 	print(height)
 	sys.exit()
-	
 print('Elevation = ' + str(height))
+
+#
+# Query range of values
+# 
+
+print('')
+print('Query range of values:')
+print('----------------------')
 print('')
 
-# as short as it gets without any error handling
+# Burgenland
+# heights = gpsinfo_layer.values(674392, 432848, 675392, 432948)
+# Vorarlberg
+heights = gpsinfo_layer.values(129250, 376779, 133250, 381779)
+if isinstance(heights, str) :
+	print(heights)
+	sys.exit()
+# numpy.savetxt('/tmp/gpsinfo_heights.txt', heights)
+# print(heights.shape)
+print('min / max: ' + str(heights.min()) + ' / ' + str(heights.max()))
+
+#
+# As short as it gets without any error handling
+#
+
+print('')
+print('Elevation query in 5 lines of code:')
+print('-----------------------------------')
+print('')
+
 service = gpsinfo.Service();
 service.connect('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml')
 layer = gpsinfo.Layer()
 layer.connect(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
 print('Elevation = ' + str(layer.value('undefined', 675392, 432848)))
-print('')
 
-    
+print('')

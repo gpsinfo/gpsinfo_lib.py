@@ -31,6 +31,8 @@ import sys
 import urllib.request
 # sudo apt install python3-gdal
 import gdal
+import math
+import numpy
 
 # We support python3 only
 assert sys.version_info > (3, 0)
@@ -171,9 +173,9 @@ class Layer:
 			
 		layerNode = service.xmlRoot().findall("./wmts:Contents/wmts:Layer[ows:Title='" + layerName + "']", service.xmlNamespace())
 		if (len(layerNode) == 0) :
-			return 'ERROR Failed to find layer with title ' + layerName + '.'
+			return 'ERROR: Failed to find layer with title ' + layerName + '.'
 		elif (len(layerNode) != 1) :
-			return 'ERROR Failed to find unique layer with title ' + layerName + '.'
+			return 'ERROR: Failed to find unique layer with title ' + layerName + '.'
 		
 		self.__layerInfo = { }
 		self.__layerInfo['URLFormat'] = layerNode[0].find('wmts:ResourceURL', service.xmlNamespace()).attrib['format']
@@ -209,14 +211,14 @@ class Layer:
 		if self.__layerInfo['URLFormat'] == 'application/zip' :
 			url = '/vsizip/' + url
 		
-		# print('Loading ' + url + ' ...')
+		print('Loading ' + url + ' ...')
 		
 		# GDAL and python: 
 		#	- https://pcjericks.github.io/py-gdalogr-cookbook/raster_layers.html
 		#	- https://automating-gis-processes.github.io/2016/Lesson7-read-raster.html
 		gdal_dataset = gdal.Open(url)
 		if gdal_dataset is None:
-			return 'ERROR Failed to open ' + url + '.'
+			return 'ERROR: Failed to open ' + url + '.'
 					
 		# read data as numpy array
 		array = gdal_dataset.ReadAsArray()
@@ -228,10 +230,35 @@ class Layer:
 	
 	#---------------------------------------------------------------------------
 	
+	# \brief Convert from coordinates to indices
+	#
+	# (0,0) is top left, x horizontal (column index), y vertical (row index)
+	#
+	# \param method 'nearest' (round to nearest), 'upper_left' (floor indices), 
+	#		'lower_right' (ceiling indices)
+	# \param coordsX Horizontal X coordinate in the layer's CRS of input 
+	#		coordinate tuple
+	# \param coordsY Vertical Y coordinate in the layer's CRS of input 
+	#		coordinate tuple
+	#
+	# \return In case or error a string. In case of success, a dictionary of
+	#		global indices defining the tile and local indices indexing that tile
 	def __convertCoords2Idx(self, method, coordsX, coordsY) :
-		globalColIndex = int(round((coordsX - self.__layerInfo['topLeftCornerX']) / self.__layerInfo['cellsize']))
-		globalRowIndex = int(round((self.__layerInfo['topLeftCornerY'] - coordsY) / self.__layerInfo['cellsize']))
-
+		globalColFloat = (coordsX - self.__layerInfo['topLeftCornerX']) / self.__layerInfo['cellsize']
+		globalRowFloat = (self.__layerInfo['topLeftCornerY'] - coordsY) / self.__layerInfo['cellsize']
+		
+		if method == 'nearest' :
+			globalColIndex = int(round(globalColFloat))
+			globalRowIndex = int(round(globalRowFloat))
+		elif method == 'upper_left' :
+			globalColIndex = int(math.floor(globalColFloat))
+			globalRowIndex = int(math.floor(globalRowFloat))
+		elif method == 'lower_right' :
+			globalColIndex = int(math.ceil(globalColFloat))
+			globalRowIndex = int(math.ceil(globalRowFloat))
+		else :
+			return "ERROR: Unknown or unsupported method '" + method + "'."
+		
 		if (globalColIndex < 0) | (globalRowIndex < 0) :
 			return 'ERROR: Query point out of bounds.'
 		
@@ -251,11 +278,20 @@ class Layer:
 		}
 
 	#---------------------------------------------------------------------------
-		
+	
+	# \brief Get data at given coordinates
+	#
+	# \param method See __convertCoords2Idx for documentation
+	# \param x Horizontal X coordinate in the layer's CRS of input 
+	#		coordinate tuple
+	# \param y Vertical Y coordinate in the layer's CRS of input 
+	#		coordinate tuple
+	#
+	# \return String in case of error, data at the coordinates on success.
 	def value(self, method, x, y) :
 		if not self.isConnected() : return 'ERROR: You need to successfully connect a layer first.'
-		
-		inds = self.__convertCoords2Idx(method, x,y)
+				
+		inds = self.__convertCoords2Idx('nearest', x,y)
 		if isinstance(inds, str) : return inds
 		if not isinstance(inds, dict) : return 'Error: Unexpected conversion result.'
 				
@@ -268,6 +304,80 @@ class Layer:
 		
 	def values(self, xLowerLeft, yLowerLeft, xUpperRight, yUpperRight):
 		if not self.isConnected() : return 'ERROR: You need to successfully connect a layer first.'
-		return 'ERROR: not implemented yet'
+		
+		if (xLowerLeft > xUpperRight) | (yLowerLeft > yUpperRight) :
+			return 'ERROR: Invalid coordinate rectangle.'
+		
+		# the lower bound indices
+		inds0 = self.__convertCoords2Idx('upper_left', xLowerLeft, yUpperRight)
+		if isinstance(inds0, str) : return inds0
+		# the upper bound indices
+		inds1 = self.__convertCoords2Idx('lower_right', xUpperRight, yLowerLeft)
+		if isinstance(inds1, str) : return inds1
+		
+		nrColsTotal = 1 + \
+			(inds1['tileColIndex'] * self.__layerInfo['tileWidth'] + inds1['localColIndex']) - \
+			(inds0['tileColIndex'] * self.__layerInfo['tileWidth'] + inds0['localColIndex'])
+			
+		nrRowsTotal = 1 + \
+			(inds1['tileRowIndex'] * self.__layerInfo['tileHeight'] + inds1['localRowIndex']) - \
+			(inds0['tileRowIndex'] * self.__layerInfo['tileHeight'] + inds0['localRowIndex'])
+		
+		# print(str((yUpperRight - yLowerLeft) / self.__layerInfo['cellsize']) + ' x ' + str((xUpperRight - xLowerLeft) / self.__layerInfo['cellsize']))
+		# print(inds0)
+		# print(inds1)
+		# print(str(nrRowsTotal) + ' x ' + str(nrColsTotal))
+		# print('')
+		# print('')
+		
+		values = numpy.full((nrRowsTotal, nrColsTotal), -1)
+		
+		for tileRowIndex in range(inds0['tileRowIndex'], inds1['tileRowIndex']+1) :
+			# rowValues ... row index of this data block's origin in 'values'
+			# rowTileData ... row index of this data block's origin in 'tileData'
+			# nrRows ... the data block's number of rows
+			if tileRowIndex == inds0['tileRowIndex'] :
+				rowValues = 0
+				rowTileData = inds0['localRowIndex']
+				nrRows = min(self.__layerInfo['tileHeight'] - inds0['localRowIndex'], nrRowsTotal)
+			elif tileRowIndex == inds1['tileRowIndex'] :
+				rowValues = nrRowsTotal - inds1['localRowIndex'] - 1
+				rowTileData = 0
+				nrRows = min(inds1['localRowIndex'] + 1, nrRowsTotal)
+			else :
+				rowValues = (tileRowIndex - inds0['tileRowIndex'] - 1) * self.__layerInfo['tileHeight'] + self.__layerInfo['tileHeight'] - inds0['localRowIndex']
+				rowTileData = 0
+				nrRows = self.__layerInfo['tileHeight']
+			
+			for tileColIndex in range(inds0['tileColIndex'], inds1['tileColIndex']+1) :
+				# Get tile data
+				tileData = self.__loadTileData(tileRowIndex, tileColIndex)
+				if isinstance(tileData, str) : return tileData
+				
+				# colValues ... column index of this data block's origin in 'values'
+				# colTileData ... column index of this data block's origin in 'tileData'
+				# nrCols ... the data block's number of columns
+				if tileColIndex == inds0['tileColIndex'] :
+					colValues = 0
+					colTileData = inds0['localColIndex']
+					nrCols = min(self.__layerInfo['tileWidth'] - inds0['localColIndex'], nrColsTotal)
+				elif tileColIndex == inds1['tileColIndex'] :
+					colValues = nrColsTotal - inds1['localColIndex'] - 1
+					colTileData = 0
+					nrCols = min(inds1['localColIndex'] + 1, nrColsTotal)
+				else :
+					colValues = (tileColIndex - inds0['tileColIndex'] - 1) * self.__layerInfo['tileWidth'] + self.__layerInfo['tileWidth'] - inds0['localColIndex']
+					colTileData = 0
+					nrCols = self.__layerInfo['tileWidth']
+				
+				# print(str(rowValues) + ', ' + str(colValues))
+				# print(str(rowTileData) + ', ' + str(colTileData))
+				# print(str(nrRows) + ', ' + str(nrCols))
+				
+				# Copy the data
+				values[rowValues:rowValues+nrRows,colValues:colValues+nrCols] = \
+					tileData[rowTileData:rowTileData+nrRows,colTileData:colTileData+nrCols]
+
+		return values		
         
 	#---------------------------------------------------------------------------
