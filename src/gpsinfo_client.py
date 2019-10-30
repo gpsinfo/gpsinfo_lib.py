@@ -26,11 +26,14 @@ along with gpsinfo. If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
-INPUT_filenameXML = '/home/rechenraum/Base/data/gpsinfo/20191024/gpsinfoWMTSCapabilities.xml'
-INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
+# INPUT_filenameXML = 'file:///home/rechenraum/Base/data/gpsinfo/20191024/gpsinfoWMTSCapabilities.xml'
+# INPUT_layerTitle = 'AUSTRIA DGM 10x10m'
 
-# INPUT_filenameXML = '/home/simon/Base/data/gpsinfo/20191025/gpsinfoWMTSCapabilities.xml'
+# INPUT_filenameXML = 'file:///home/simon/Base/data/gpsinfo/20191025/gpsinfoWMTSCapabilities.xml'
 # INPUT_layerTitle = 'gpsinfo Test Layer'
+
+INPUT_filenameXML = 'http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml'
+INPUT_layerTitle = 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED'
 
 ################################################################################
 #
@@ -101,7 +104,7 @@ si.connect(INPUT_filenameXML)
 for layer in si.layers():
     print('\t' + layer)
     
-# sys.exit()
+sys.exit()
 
 ################################################################################
 #

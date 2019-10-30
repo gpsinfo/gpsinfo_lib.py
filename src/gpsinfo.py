@@ -28,9 +28,10 @@ along with gpsinfo. If not, see <http://www.gnu.org/licenses/>.
 
 import xml.etree.ElementTree as xmlET
 import sys
+import urllib.request
 
 # We support python3 only
-assert sys.version_info < (3, 0)
+assert sys.version_info > (3, 0)
 
 ################################################################################
 #
@@ -52,10 +53,21 @@ class ServiceInfo:
 		
 		self.__baseurl = baseurl
 		
+		# Download XML file
+		#	https://stackoverflow.com/a/7244263
+		# For local files, use a "file://" prefix, see
+		#	https://stackoverflow.com/a/20558624
+		try:
+			xml = urllib.request.urlopen(baseurl).read().decode('utf-8')		
+		except: 
+			return "ERROR: Failed to download service XML file from '" + baseurl + "'."
+				
 		# Parse XML file
 		#
 		# See https://docs.python.org/3/library/xml.etree.elementtree.html
-		self.__xmlRoot = xmlET.parse(baseurl).getroot()
+		#	xmlET.parse(baseurl).getroot()
+		# would open a file.
+		self.__xmlRoot = xmlET.fromstring(xml)
 		
 		# Get layers
 		self.__layers = []
