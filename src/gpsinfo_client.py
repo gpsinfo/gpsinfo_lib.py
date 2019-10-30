@@ -91,11 +91,11 @@ print('-------------------')
 print('')
 
 # out-of-bounds
-# height = gpsinfo_layer.value('undefined', 152803.0, 258808.0)
+# height = gpsinfo_layer.value('nearest', 152803.0, 258808.0)
 # Burgenland
-# height = gpsinfo_layer.value('undefined', 675392, 432848)
+# height = gpsinfo_layer.value('nearest', 675392, 432848)
 # Vorarlberg
-height = gpsinfo_layer.value('undefined', 125250, 371779)
+height = gpsinfo_layer.value('nearest', 125250, 371779)
 if isinstance(height, str) :
 	print(height)
 	sys.exit()
@@ -132,6 +132,6 @@ print('')
 
 service = gpsinfo.Service('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml');
 layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
-print('Elevation = ' + str(layer.value('undefined', 675392, 432848)))
+print('Elevation = ' + str(layer.value('nearest', 675392, 432848)))
 
 print('')

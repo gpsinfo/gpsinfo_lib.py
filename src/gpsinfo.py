@@ -310,7 +310,7 @@ class Layer:
 	def value(self, method, x, y) :
 		if not self.isConnected() : return 'ERROR: You need to successfully connect a layer first.'
 				
-		inds = self.__convertCoords2Idx('nearest', x,y)
+		inds = self.__convertCoords2Idx(method, x,y)
 		if isinstance(inds, str) : return inds
 		if not isinstance(inds, dict) : return 'Error: Unexpected conversion result.'
 				
