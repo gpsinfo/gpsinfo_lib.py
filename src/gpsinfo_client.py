@@ -130,10 +130,8 @@ print('Elevation query in 5 lines of code:')
 print('-----------------------------------')
 print('')
 
-service = gpsinfo.Service();
-service.connect('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml')
-layer = gpsinfo.Layer()
-layer.connect(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
+service = gpsinfo.Service('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml');
+layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
 print('Elevation = ' + str(layer.value('undefined', 675392, 432848)))
 
 print('')

@@ -46,15 +46,21 @@ assert sys.version_info > (3, 0)
 class Service:
 	
 	#---------------------------------------------------------------------------
-	
+		
 	# Constructor
-	def __init__(self):
+	#
+	# \param baseurl If given, we connect to the service
+	def __init__(self, baseurl = None) :
 		self.__isConnected = False
 		self.__xmlNamespace = {
 			'wmts' : 'http://www.opengis.net/wmts/1.0',
 			'ows' : 'http://www.opengis.net/ows/1.1'
 		}
-	
+		if not baseurl is None : 
+			error = self.connect(baseurl)
+			if error is str : 
+				print(error)
+		
 	#---------------------------------------------------------------------------
 		
 	# \brief Checks is a connection could be established successfully
@@ -151,8 +157,15 @@ class Layer:
 	#---------------------------------------------------------------------------
 	
 	# Constructor
-	def __init__(self):
+	#
+	# \param service Connect to a layer of this (connected) service
+	# \param layerName Name of the layer to connect to
+	def __init__(self, service = None, layerName = None ):
 		self.__isConnected = False
+		if (not service is None) & (not layerName is None) : 
+			error = self.connect(service, layerName)
+			if error is str : 
+				print(error)
 		
 	#---------------------------------------------------------------------------
 		
@@ -166,6 +179,12 @@ class Layer:
 
 	#---------------------------------------------------------------------------
 		
+	# \brief Connect to a specific layer
+	#
+	# \param service Connect to a layer of this (connected) service
+	# \param layerName Name of the layer to connect to
+	#
+	# \return String in case of error
 	def connect(self, service, layerName):
 		self.__isConnected = False
 		if not service.isConnected() : 
