@@ -162,6 +162,7 @@ class Layer:
 	# \param layerName Name of the layer to connect to
 	def __init__(self, service = None, layerName = None ):
 		self.__isConnected = False
+		self.__nod = None
 		if (not service is None) & (not layerName is None) : 
 			error = self.connect(service, layerName)
 			if error is str : 
@@ -176,6 +177,20 @@ class Layer:
 	# \return True, if connection was successful, false otherwise.
 	def isConnected(self):
 		return self.__isConnected
+
+	#---------------------------------------------------------------------------
+		
+	# \brief Get no data value
+	#
+	# The no data value is only available after a successful call to value() or
+	# values().
+	#
+	# \return A string in case of error (e.g. no data value not available) or
+	#		the no data value in case of success.
+	def nod(self):
+		if self.__nod is None :
+			return 'ERROR: The no data value is only available after a successful call to value(...) or values(...).'
+		return self.__nod
 
 	#---------------------------------------------------------------------------
 		
@@ -238,6 +253,9 @@ class Layer:
 		gdal_dataset = gdal.Open(url)
 		if gdal_dataset is None:
 			return 'ERROR: Failed to open ' + url + '.'
+			
+		# Store latest no data value.
+		self.__nod = gdal_dataset.GetRasterBand(1).GetNoDataValue()
 					
 		# read data as numpy array
 		array = gdal_dataset.ReadAsArray()
@@ -321,6 +339,19 @@ class Layer:
 			
 	#---------------------------------------------------------------------------
 		
+	# \brief Get data of a rectangular coordinate region
+	#
+	# \param method See __convertCoords2Idx for documentation
+	# \param xLowerLeft Horizontal X coordinate in the layer's CRS of the query
+	#		rectangles lower left corner
+	# \param yLowerLeft Vertical Y coordinate in the layer's CRS of the query
+	#		rectangles lower left corner
+	# \param xUpperRight Horizontal X coordinate in the layer's CRS of the query
+	#		rectangles upper right corner
+	# \param yUpperRight Vertical Y coordinate in the layer's CRS of the query
+	#		rectangles upper right corner
+	#
+	# \return String in case of error, numpy data array in case of success
 	def values(self, xLowerLeft, yLowerLeft, xUpperRight, yUpperRight):
 		if not self.isConnected() : return 'ERROR: You need to successfully connect a layer first.'
 		

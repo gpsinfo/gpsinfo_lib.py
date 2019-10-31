@@ -100,6 +100,7 @@ if isinstance(height, str) :
 	print(height)
 	sys.exit()
 print('Elevation = ' + str(height))
+print('NoData value = ' + str(gpsinfo_layer.nod()))
 
 #
 # Query range of values
