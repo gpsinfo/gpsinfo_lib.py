@@ -8,7 +8,7 @@ http://www.gpsinfo.org for more information.
 The following example illustrates how you may query elevation data at given 
 coordinates with four lines of Python code.
 
-```
+```python
 import gpsinfo
 service = gpsinfo.Service('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml')
 layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
