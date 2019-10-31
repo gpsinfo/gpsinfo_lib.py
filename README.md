@@ -1,7 +1,7 @@
 # gpsinfo_lib.py
 
-Python reference implementation of gpsinfo client library API. Visit
-http://www.gpsinfo.org for more information.
+GPL3-license reference implementation of gpsinfo client library API in Python. 
+Visit http://www.gpsinfo.org for more information.
 
 ## Example - Query Elevation Data
 
