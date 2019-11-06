@@ -135,4 +135,20 @@ service = gpsinfo.Service('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabiliti
 layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
 print('Elevation = ' + str(layer.value('nearest', 675392, 432848)))
 
+#
+#
+#
+
+print('')
+print('External test case:')
+print('-------------------')
+print('')
+
+import gdal
+# gdal.SetConfigOption('CPL_DEBUG', 'ON')
+# gdal.SetConfigOption('CPL_CURL_VERBOSE', 'YES')
+service = gpsinfo.Service('http://raw.githubusercontent.com/maegger/TEST/master/gpsinfoWMTSCapabilities.xml')
+layer = gpsinfo.Layer(service, 'TESTSERVER')
+print('Elevation = ' + str(layer.value('nearest', 7992.9,289438.2)))
+
 print('')

@@ -33,6 +33,8 @@ import urllib.request
 import gdal
 import math
 import numpy
+import os
+import qgis.utils
 
 # We support python3 only
 assert sys.version_info > (3, 0)
@@ -252,7 +254,14 @@ class Layer:
 		#	- https://automating-gis-processes.github.io/2016/Lesson7-read-raster.html
 		gdal_dataset = gdal.Open(url)
 		if gdal_dataset is None:
-			return 'ERROR: Failed to open ' + url + '.'
+			error_string = "ERROR: Failed to open '" + url + "'."
+			# There is a bug on windows/qgis/gdal/curl, see 
+			#		https://issues.qgis.org/issues/19331
+			if (os.system() == 'nt') and self.__layerInfo['URLTemplate'].startswith('https://') and (qgis.utils.iface is not None):
+				error_string += " You are accessing a service over HTTPS on Windows from within qgis. \
+Please check whether this qgis bug applies in your case: 'https://issues.qgis.org/issues/19331'. \
+We recommend to switch to HTTP as a work-around."
+				return error_string
 			
 		# Store latest no data value.
 		self.__nod = gdal_dataset.GetRasterBand(1).GetNoDataValue()
