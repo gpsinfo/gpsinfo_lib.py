@@ -34,7 +34,12 @@ import gdal
 import math
 import numpy
 import os
-import qgis.utils
+
+try:
+	import qgis.utils
+	have_qgis = True
+except:
+	have_qgis = False
 
 # We support python3 only
 assert sys.version_info > (3, 0)
@@ -257,7 +262,7 @@ class Layer:
 			error_string = "ERROR: Failed to open '" + url + "'."
 			# There is a bug on windows/qgis/gdal/curl, see 
 			#		https://issues.qgis.org/issues/19331
-			if (os.system() == 'nt') and self.__layerInfo['URLTemplate'].startswith('https://') and (qgis.utils.iface is not None):
+			if (os.system() == 'nt') and self.__layerInfo['URLTemplate'].startswith('https://') and have_qgis and (qgis.utils.iface is not None):
 				error_string += " You are accessing a service over HTTPS on Windows from within qgis. \
 Please check whether this qgis bug applies in your case: 'https://issues.qgis.org/issues/19331'. \
 We recommend to switch to HTTP as a work-around."
