@@ -265,7 +265,7 @@ class Layer:
 			if (os.system() == 'nt') and have_qgis and (qgis.utils.iface is not None):
 				error_string += " gpsinfo failed to access a remote file when running in a Windows qgis/python environment. \
 Please check whether the following qgis bug applies in your case: 'http://gpsinfo.org/qgis-opening-remote-files-with-gdal-over-https-fails/'. \
-Please follow the instructions in that link and set the environment variable CURL_CA_BUNDLE to resolve this qgis bug."
+A quick-and-dirty solution is to set Layer.allowUnsafeSSL(true)."
 				return error_string
 			
 		# Store latest no data value.
@@ -445,3 +445,29 @@ Please follow the instructions in that link and set the environment variable CUR
 		return values		
         
 	#---------------------------------------------------------------------------
+			
+	# \brief Static method to allow/disallow unsafe SSL, e.g. ignore/respect 
+	#		certificate errors.
+	#
+	# This method is a little helper to resolve problems with qgis on Windows,
+	# see 
+	#	http://gpsinfo.org/qgis-opening-remote-files-with-gdal-over-https-fails/
+	# for more information.
+	#
+	# \param unsafeSSL If true, we allow unsafe SSL, if false, we disable 
+	#		unsafe SSL
+	@staticmethod
+	def allowUnsafeSSL(unsafeSSL):
+		if (unsafeSSL) :
+			value='YES'
+		else :
+			value='NO'
+		current_value = gdal.GetConfigOption('GDAL_HTTP_UNSAFESSL')
+		if ((current_value is None) or (current_value != value)):
+			gdal.SetConfigOption('GDAL_HTTP_UNSAFESSL', value)
+			# We clear curl's cache. Curl caches failed requests, and returns
+			# errors from the cache.
+			gdal.VSICurlClearCache()			
+
+	#---------------------------------------------------------------------------
+	

@@ -127,7 +127,7 @@ print('min / max: ' + str(heights.min()) + ' / ' + str(heights.max()))
 #
 
 print('')
-print('Elevation query in 5 lines of code:')
+print('Elevation query in 4 lines of code:')
 print('-----------------------------------')
 print('')
 
@@ -136,19 +136,18 @@ layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
 print('Elevation = ' + str(layer.value('nearest', 675392, 432848)))
 
 #
-#
+# As short as it gets without any error handling, allowing for unsafe SSL
 #
 
 print('')
-print('External test case:')
-print('-------------------')
+print('Elevation query in 6 lines of code (w/ unsafe SSL):')
+print('---------------------------------------------------')
 print('')
 
-import gdal
-# gdal.SetConfigOption('CPL_DEBUG', 'ON')
-# gdal.SetConfigOption('CPL_CURL_VERBOSE', 'YES')
-service = gpsinfo.Service('http://raw.githubusercontent.com/maegger/TEST/master/gpsinfoWMTSCapabilities.xml')
-layer = gpsinfo.Layer(service, 'TESTSERVER')
-print('Elevation = ' + str(layer.value('nearest', 7992.9,289438.2)))
+service = gpsinfo.Service('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml');
+layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
+layer.allowUnsafeSSL(True)
+print('Elevation = ' + str(layer.value('nearest', 675392, 432848)))
+layer.allowUnsafeSSL(False)
 
 print('')
