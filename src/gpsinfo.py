@@ -262,10 +262,10 @@ class Layer:
 			error_string = "ERROR: Failed to open '" + url + "'."
 			# There is a bug on windows/qgis/gdal/curl, see 
 			#		https://issues.qgis.org/issues/19331
-			if (os.system() == 'nt') and self.__layerInfo['URLTemplate'].startswith('https://') and have_qgis and (qgis.utils.iface is not None):
-				error_string += " You are accessing a service over HTTPS on Windows from within qgis. \
-Please check whether this qgis bug applies in your case: 'https://issues.qgis.org/issues/19331'. \
-We recommend to switch to HTTP as a work-around."
+			if (os.system() == 'nt') and have_qgis and (qgis.utils.iface is not None):
+				error_string += " gpsinfo failed to access a remote file when running in a Windows qgis/python environment. \
+Please check whether the following qgis bug applies in your case: 'http://gpsinfo.org/qgis-opening-remote-files-with-gdal-over-https-fails/'. \
+Please follow the instructions in that link and set the environment variable CURL_CA_BUNDLE to resolve this qgis bug."
 				return error_string
 			
 		# Store latest no data value.
