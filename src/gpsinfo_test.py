@@ -146,8 +146,8 @@ print('')
 
 service = gpsinfo.Service('http://gpsinfo.org/service_wmts/gpsinfoWMTSCapabilities.xml');
 layer = gpsinfo.Layer(service, 'AT_OGD_DHM_LAMB_10M_ELEVATION_COMPRESSED')
-layer.allowUnsafeSSL(True)
+gpsinfo.Layer.allowUnsafeSSL(True)
 print('Elevation = ' + str(layer.value('nearest', 675392, 432848)))
-layer.allowUnsafeSSL(False)
+gpsinfo.Layer.allowUnsafeSSL(False)
 
 print('')

@@ -265,7 +265,7 @@ class Layer:
 			if (os.system() == 'nt') and have_qgis and (qgis.utils.iface is not None):
 				error_string += " gpsinfo failed to access a remote file when running in a Windows qgis/python environment. \
 Please check whether the following qgis bug applies in your case: 'http://gpsinfo.org/qgis-opening-remote-files-with-gdal-over-https-fails/#gpsinfo-and-qgis'. \
-A quick-and-dirty solution is to call Layer.allowUnsafeSSL(true)."
+A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 				return error_string
 			
 		# Store latest no data value.
