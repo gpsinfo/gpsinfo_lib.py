@@ -99,7 +99,12 @@ height = gpsinfo_layer.value('nearest', 125250, 371779)
 if isinstance(height, str) :
 	print(height)
 	sys.exit()
-print('Elevation = ' + str(height))
+print('Elevation (nearest) = ' + str(height))
+height = gpsinfo_layer.value('interpolate', 125250, 371779)
+if isinstance(height, str) :
+	print(height)
+	sys.exit()
+print('Elevation (interpolate) = ' + str(height))
 print('NoData value = ' + str(gpsinfo_layer.nod()))
 
 #

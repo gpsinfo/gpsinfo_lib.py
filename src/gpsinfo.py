@@ -46,7 +46,7 @@ assert sys.version_info > (3, 0)
 
 ################################################################################
 #
-# class ServiceInfo
+# class Service
 #
 ################################################################################
 
@@ -155,7 +155,7 @@ class Service:
 		
 ################################################################################
 #
-# class LayerInfo
+# class Layer
 #
 ################################################################################
 
@@ -332,7 +332,8 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 	
 	# \brief Get data at given coordinates
 	#
-	# \param method See __convertCoords2Idx for documentation
+	# \param method See __convertCoords2Idx for documentation. Additionally,
+	#		'interpolate' performs bi-linear interpolation.
 	# \param x Horizontal X coordinate in the layer's CRS of input 
 	#		coordinate tuple
 	# \param y Vertical Y coordinate in the layer's CRS of input 
@@ -341,15 +342,61 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 	# \return String in case of error, data at the coordinates on success.
 	def value(self, method, x, y) :
 		if not self.isConnected() : return 'ERROR: You need to successfully connect a layer first.'
-				
-		inds = self.__convertCoords2Idx(method, x,y)
-		if isinstance(inds, str) : return inds
-		if not isinstance(inds, dict) : return 'Error: Unexpected conversion result.'
-				
-		data = self.__loadTileData(inds['tileRowIndex'], inds['tileColIndex'])
-		if isinstance(data, str) : return data
 		
-		return data[inds['localRowIndex'],inds['localColIndex']]
+		if (method == 'interpolate') :
+			inds00 = self.__convertCoords2Idx('upper_left', x, y)
+			if isinstance(inds00, str) : return indsur
+			if not isinstance(inds00, dict) : return 'Error: Unexpected conversion result.'
+			
+			# Determine indices, beware of tile boundaries
+			inds11 = inds00
+			++inds11['localRowIndex']
+			if (inds11['localRowIndex'] > self.__layerInfo['tileHeight']) :
+				inds11['localRowIndex'] = 0
+				++inds11['tileRowIndex']
+			++inds11['localColIndex']
+			if (inds11['localColIndex'] > self.__layerInfo['tileWidth']) :
+				inds11['localColIndex'] = 0
+				++inds11['tileColIndex']
+			inds01 = { 
+				'tileRowIndex' : inds00['tileRowIndex'], 
+				'tileColIndex' : inds11['tileColIndex'], 
+				'localRowIndex' : inds00['localRowIndex'],
+				'localColIndex' : inds11['localColIndex']
+			}
+			inds10 = { 
+				'tileRowIndex' : inds11['tileRowIndex'], 
+				'tileColIndex' : inds00['tileColIndex'], 
+				'localRowIndex' : inds11['localRowIndex'],
+				'localColIndex' : inds00['localColIndex']
+			}
+			
+			# Query data
+			data00 = self.__loadTileData(inds00['tileRowIndex'], inds00['tileColIndex'])
+			if isinstance(data00, str) : return data00
+			v00 = data00[inds00['localRowIndex'],inds00['localColIndex']]
+			data01 = self.__loadTileData(inds01['tileRowIndex'], inds01['tileColIndex'])
+			if isinstance(data01, str) : return data01
+			v01 = data01[inds01['localRowIndex'],inds01['localColIndex']]
+			data10 = self.__loadTileData(inds10['tileRowIndex'], inds10['tileColIndex'])
+			if isinstance(data10, str) : return data10
+			v10 = data10[inds10['localRowIndex'],inds10['localColIndex']]
+			data11 = self.__loadTileData(inds11['tileRowIndex'], inds11['tileColIndex'])
+			if isinstance(data11, str) : return data11
+			v11 = data11[inds11['localRowIndex'],inds11['localColIndex']]
+			
+			# perform interpolation
+			return 'Error: value/interpolate not implemented yet'
+			
+		else :
+			inds = self.__convertCoords2Idx(method, x,y)
+			if isinstance(inds, str) : return inds
+			if not isinstance(inds, dict) : return 'Error: Unexpected conversion result.'
+					
+			data = self.__loadTileData(inds['tileRowIndex'], inds['tileColIndex'])
+			if isinstance(data, str) : return data
+			
+			return data[inds['localRowIndex'],inds['localColIndex']]
 			
 	#---------------------------------------------------------------------------
 		
