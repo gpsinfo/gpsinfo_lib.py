@@ -344,20 +344,13 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 		if not self.isConnected() : return 'ERROR: You need to successfully connect a layer first.'
 		
 		if (method == 'interpolate') :
+			# Determine indices, beware of tile boundaries
 			inds00 = self.__convertCoords2Idx('upper_left', x, y)
 			if isinstance(inds00, str) : return indsur
 			if not isinstance(inds00, dict) : return 'Error: Unexpected conversion result.'
-			
-			# Determine indices, beware of tile boundaries
-			inds11 = inds00
-			++inds11['localRowIndex']
-			if (inds11['localRowIndex'] > self.__layerInfo['tileHeight']) :
-				inds11['localRowIndex'] = 0
-				++inds11['tileRowIndex']
-			++inds11['localColIndex']
-			if (inds11['localColIndex'] > self.__layerInfo['tileWidth']) :
-				inds11['localColIndex'] = 0
-				++inds11['tileColIndex']
+			inds11 = self.__convertCoords2Idx('lower_right', x, y)
+			if isinstance(inds11, str) : return indsur
+			if not isinstance(inds11, dict) : return 'Error: Unexpected conversion result.'
 			inds01 = { 
 				'tileRowIndex' : inds00['tileRowIndex'], 
 				'tileColIndex' : inds11['tileColIndex'], 
@@ -386,6 +379,8 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 			v11 = data11[inds11['localRowIndex'],inds11['localColIndex']]
 			
 			# perform interpolation
+			# 	coords00 = __convertIdx2Coords
+			# 	coords11 = __convertIdx2Coords
 			return 'Error: value/interpolate not implemented yet'
 			
 		else :
