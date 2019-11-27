@@ -283,7 +283,8 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 	
 	# \brief Convert from coordinates to indices
 	#
-	# (0,0) is top left, x horizontal (column index), y vertical (row index)
+	# (0,0) is top left, x horizontal (column index), y vertical (row index).
+	# See also __convertIdx2Coords.
 	#
 	# \param method 'nearest' (round to nearest), 'upper_left' (floor indices), 
 	#		'lower_right' (ceiling indices)
@@ -330,6 +331,26 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 
 	#---------------------------------------------------------------------------
 	
+	# \brief Convert from indices to coordinates
+	#
+	# (0,0) is top left, x horizontal (column index), y vertical (row index).
+	# See also __convertCoords2Idx.
+	#
+	# \param inds Index quadruple dictionary with 'tileRowIndex', 'tileColIndex',
+	#		'localRowIndex' and 'localColIndex'
+	#
+	# \return In case or error a string. In case of success, a coorindate tuple
+	#		(x, y)
+	def __convertIdx2Coords(self, inds) :
+		globalColIndex = inds['tileColIndex']*self.__layerInfo['tileWidth'] + inds['localColIndex']
+		globalRowIndex = inds['tileRowIndex']*self.__layerInfo['tileHeight'] + inds['localRowIndex']
+		return [
+			self.__layerInfo['topLeftCornerX'] + globalColIndex*self.__layerInfo['cellsize'],
+			self.__layerInfo['topLeftCornerY'] - globalRowIndex*self.__layerInfo['cellsize']
+		]
+	
+	#---------------------------------------------------------------------------
+	
 	# \brief Get data at given coordinates
 	#
 	# \param method See __convertCoords2Idx for documentation. Additionally,
@@ -346,10 +367,10 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 		if (method == 'interpolate') :
 			# Determine indices, beware of tile boundaries
 			inds00 = self.__convertCoords2Idx('upper_left', x, y)
-			if isinstance(inds00, str) : return indsur
+			if isinstance(inds00, str) : return inds00
 			if not isinstance(inds00, dict) : return 'Error: Unexpected conversion result.'
 			inds11 = self.__convertCoords2Idx('lower_right', x, y)
-			if isinstance(inds11, str) : return indsur
+			if isinstance(inds11, str) : return inds11
 			if not isinstance(inds11, dict) : return 'Error: Unexpected conversion result.'
 			inds01 = { 
 				'tileRowIndex' : inds00['tileRowIndex'], 
@@ -378,11 +399,11 @@ A quick-and-dirty solution is to call gpsinfo.Layer.allowUnsafeSSL(true)."
 			if isinstance(data11, str) : return data11
 			v11 = data11[inds11['localRowIndex'],inds11['localColIndex']]
 			
-			# perform interpolation
-			# 	coords00 = __convertIdx2Coords
-			# 	coords11 = __convertIdx2Coords
-			return 'Error: value/interpolate not implemented yet'
-			
+			# perform interpolation. ind10 has minimal, ind01 maximal coordinates
+			coords10 = self.__convertIdx2Coords(inds10)
+			delta_x = (x - coords10[0]) / self.__layerInfo['cellsize']
+			delta_y = (y - coords10[1]) / self.__layerInfo['cellsize']
+			return (1-delta_y)*((1-delta_x)*v10 + delta_x*v11) + delta_y*((1-delta_x)*v00 + delta_x*v01)			
 		else :
 			inds = self.__convertCoords2Idx(method, x,y)
 			if isinstance(inds, str) : return inds
